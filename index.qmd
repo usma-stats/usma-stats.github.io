@@ -1,0 +1,82 @@
+---
+title: "MA206X: Probability and Statistics"
+subtitle: "AY26-2"
+author: "CPT Jonathan Day"
+---
+
+## Welcome to MA206X
+
+This website contains interactive lesson materials for MA206X: Introduction to Probability and Statistics, following Devore's 9th Edition of *Probability and Statistics for Engineering and the Sciences*.
+
+### Course Overview
+
+This course introduces you to the foundational principles of probability and statistics, emphasizing data literacy and inference. The course is organized into three blocks:
+
+#### Block I: Data and Randomness
+
+- Understanding data types and study design
+- Exploratory data analysis and visualization
+- Probability theory and counting principles
+- Discrete and continuous probability distributions
+
+#### Block II: Inference
+
+- Central Limit Theorem and sampling distributions
+- Confidence intervals for means and proportions
+- Hypothesis testing (one-sample and two-sample)
+- Type I/II errors and statistical power
+
+#### Block III: Regression Modeling
+
+- Simple and multiple linear regression
+- ANOVA and experimental design
+- Model diagnostics and interpretation
+- Real-world applications with Army data
+
+### The Six Step Method
+
+Every statistical analysis in this course follows a clear, repeatable process:
+
+1. **Ask a research question** - Formulate a meaningful, testable question
+2. **Design a study and collect data** - Choose appropriate sampling methods
+3. **Explore the data** - Use visualizations and summary statistics
+4. **Draw inferences beyond the data** - Apply statistical tests and models
+5. **Formulate conclusions** - Interpret results in context
+6. **Look back and ahead** - Reflect on limitations and future directions
+
+### Technology: R Programming
+
+Throughout this course, we'll use **R** for data analysis. The primary focus is not on becoming coding experts, but on using R as a tool to:
+
+- Summarize and visualize data effectively
+- Perform statistical tests and create models
+- Communicate findings clearly and reproducibly
+
+Building on skills from CY105, you'll develop practical data analysis capabilities that support your understanding of statistical concepts.
+
+### Getting Started
+
+Navigate to the lessons using the menu above. Each lesson includes:
+
+- **Learning objectives** aligned with the syllabus
+- **Conceptual explanations** with mathematical foundations
+- **R code examples** you can run and modify
+- **Practice problems** to reinforce understanding
+
+::: {.callout-tip}
+## Using This Site
+
+- Code blocks can be copied using the copy button in the top-right
+- Click "Code" buttons to show/hide R code
+- Use the table of contents on the right to navigate within lessons
+- Try modifying and running the R examples yourself!
+:::
+
+### Course Resources
+
+- [Code Annex](code_annex.qmd) - Quick reference for R functions
+- [Course Syllabus](syllabus.qmd) - Full syllabus with all 40 lessons
+
+---
+
+*This website is designed to replace traditional lesson handouts, allowing you to follow along with boardwork, experiment with R code, and revisit materials anytime.*

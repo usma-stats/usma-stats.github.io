@@ -1,0 +1,60 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "MA206X: Probability and Statistics"
+  navbar:
+    background: primary
+    search: true
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Lessons"
+        menu:
+          - text: "Lesson 1: Types of Data & Study Design"
+            href: lesson_01.qmd
+          - text: "Lesson 2: Sampling & Study Design"
+            href: lesson_02.qmd
+          - text: "Lesson 3: Measures of Location"
+            href: lesson_03.qmd
+          - text: "Lesson 4: Measures of Variability"
+            href: lesson_04.qmd
+          - text: "Lesson 5: Exploratory Data Analysis Lab"
+            href: lesson_05.qmd
+      - text: "Resources"
+        menu:
+          - text: "Code Annex"
+            href: code_annex.qmd
+          - text: "Course Syllabus"
+            href: syllabus.qmd
+
+  sidebar: false
+
+  page-footer:
+    left: "MA206X - United States Military Academy"
+    right: "Built with [Quarto](https://quarto.org/)"
+
+format:
+  html:
+    theme:
+      light: flatly
+      dark: darkly
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    code-fold: show
+    code-tools: true
+    code-copy: true
+    number-sections: true
+    fig-width: 8
+    fig-height: 6
+    fig-align: center
+
+execute:
+  warning: false
+  message: false
+  echo: true
+  cache: false
+
+editor: visual

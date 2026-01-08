@@ -1,0 +1,353 @@
+---
+title: "Lesson 1: Types of Data, Sampling & Study Design"
+subtitle: "MA206X: Probability and Statistics"
+date: today
+format:
+  html:
+    code-fold: show
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(kableExtra)
+```
+
+::: {.learning-objectives}
+### Learning Objectives
+
+By the end of this lesson, you will be able to:
+
+1. Distinguish populations, samples, and processes in studies
+2. Classify variables as categorical or quantitative
+3. Identify parameters vs. statistics in context
+
+**Reading:** Devore 1.1
+:::
+
+## Introduction
+
+Statistical thinking begins with understanding **what** we're measuring and **how** we collect that information. Before we can analyze data, we must clearly define:
+
+- What entities we're studying (observational units)
+- What characteristics we're measuring (variables)
+- Whether we're studying everyone or just a subset (population vs. sample)
+
+## Populations, Samples, and Processes
+
+### Key Definitions
+
+::: {.callout-note}
+## Fundamental Concepts
+
+**Population**: The entire collection of individuals or objects about which information is desired.
+
+**Sample**: A subset of the population selected for study.
+
+**Parameter**: A numerical characteristic of a **population** (usually unknown).
+
+**Statistic**: A numerical characteristic of a **sample** (computed from data).
+:::
+
+### Why Study Samples?
+
+In most real-world scenarios, studying an entire population is:
+
+- **Impractical** - Too time-consuming or expensive
+- **Impossible** - Population is infinite or inaccessible
+- **Unnecessary** - A well-chosen sample provides reliable information
+
+The key challenge: **How do we ensure our sample accurately represents the population?**
+
+::: {.example}
+### Example 1.1: Population vs. Sample
+
+**Scenario**: You want to know the average height of all cadets in the Corps.
+
+- **Population**: All 4,400 cadets at USMA
+- **Sample**: 200 randomly selected cadets
+- **Parameter**: $\mu$ = true average height of all cadets (unknown)
+- **Statistic**: $\bar{x}$ = average height of the 200 sampled cadets (computable)
+
+If we calculate $\bar{x} = 69.5$ inches from our sample, we **estimate** that $\mu \approx 69.5$ inches.
+:::
+
+## Types of Variables
+
+Variables are characteristics that can differ from one observational unit to another. Understanding variable types determines which statistical methods we can use.
+
+### Categorical Variables
+
+**Categorical** (qualitative) variables place individuals into groups or categories.
+
+#### Subtypes:
+
+1. **Nominal**: Categories with no natural ordering
+   - Examples: Color (red, blue, green), Military Occupational Specialty (11A, 35D, 12A)
+
+2. **Ordinal**: Categories with a meaningful order
+   - Examples: Class rank (4th, 3rd, 2nd, 1st class), Likert scale (Strongly Disagree → Strongly Agree)
+
+3. **Binary**: Only two possible categories
+   - Examples: Pass/Fail, Yes/No, True/False
+
+### Quantitative Variables
+
+**Quantitative** (numerical) variables take numerical values where arithmetic operations make sense.
+
+#### Subtypes:
+
+1. **Discrete**: Countable values (often integers)
+   - Examples: Number of pushups, number of siblings, count of vehicles
+
+2. **Continuous**: Can take any value in an interval
+   - Examples: Height, weight, temperature, time
+
+### Quick Classification Guide
+
+```{r, echo=FALSE}
+var_guide <- tibble(
+  Question = c(
+    "Can you perform arithmetic?",
+    "Are values countable?",
+    "Is there a natural order?"
+  ),
+  `If Yes` = c(
+    "Quantitative",
+    "Discrete",
+    "Ordinal"
+  ),
+  `If No` = c(
+    "Categorical",
+    "Continuous",
+    "Nominal"
+  )
+)
+
+var_guide %>%
+  kable(align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+::: {.example}
+### Example 1.2: Classifying Variables
+
+Let's classify variables from a cadet fitness study:
+
+```{r, echo=FALSE}
+fitness_vars <- tibble(
+  Variable = c(
+    "APFT Score",
+    "Gender",
+    "Company",
+    "2-Mile Run Time (minutes)",
+    "Number of Pull-ups",
+    "Fitness Category (Excellent/Good/Fair/Poor)"
+  ),
+  Type = c(
+    "Quantitative (Discrete)",
+    "Categorical (Binary)",
+    "Categorical (Nominal)",
+    "Quantitative (Continuous)",
+    "Quantitative (Discrete)",
+    "Categorical (Ordinal)"
+  ),
+  Reasoning = c(
+    "Counts total points (0-300)",
+    "Two categories: Male/Female",
+    "No natural ordering of A-I companies",
+    "Can take any positive value",
+    "Count of repetitions",
+    "Ordered quality levels"
+  )
+)
+
+fitness_vars %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  column_spec(1, bold = TRUE)
+```
+:::
+
+## Working with Real Data in R
+
+Let's explore variable types using a dataset. We'll use R's built-in `mtcars` dataset about automobiles.
+
+```{r}
+# Load the dataset
+data(mtcars)
+
+# View the first few rows
+head(mtcars)
+```
+
+### Identifying Variable Types
+
+```{r}
+# Structure of the dataset
+str(mtcars)
+```
+
+Let's classify each variable:
+
+```{r}
+# Create a summary of variable types
+mtcars_summary <- tibble(
+  Variable = names(mtcars),
+  Type = c(
+    "Quantitative (Continuous)",  # mpg
+    "Quantitative (Discrete)",     # cyl
+    "Quantitative (Continuous)",   # disp
+    "Quantitative (Continuous)",   # hp
+    "Quantitative (Continuous)",   # drat
+    "Quantitative (Continuous)",   # wt
+    "Quantitative (Continuous)",   # qsec
+    "Categorical (Binary)",        # vs (engine type)
+    "Categorical (Binary)",        # am (transmission)
+    "Quantitative (Discrete)",     # gear
+    "Quantitative (Discrete)"      # carb
+  )
+)
+
+mtcars_summary %>%
+  kable() %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+### Converting Variables in R
+
+Sometimes R doesn't automatically recognize categorical variables. We can convert them:
+
+```{r}
+# Convert categorical variables to factors
+mtcars_clean <- mtcars %>%
+  mutate(
+    cyl = factor(cyl),
+    vs = factor(vs, labels = c("V-shaped", "Straight")),
+    am = factor(am, labels = c("Automatic", "Manual")),
+    gear = factor(gear),
+    carb = factor(carb)
+  )
+
+# Check the structure again
+str(mtcars_clean)
+```
+
+## Parameters vs. Statistics: Notation Matters
+
+Statistical inference involves using sample statistics to make claims about population parameters. We use different notation for each:
+
+```{r, echo=FALSE}
+notation_table <- tibble(
+  Measure = c(
+    "Mean",
+    "Proportion",
+    "Standard Deviation",
+    "Variance",
+    "Correlation",
+    "Size"
+  ),
+  Population = c(
+    "$\\mu$ (mu)",
+    "$\\pi$ or $p$",
+    "$\\sigma$ (sigma)",
+    "$\\sigma^2$",
+    "$\\rho$ (rho)",
+    "$N$"
+  ),
+  Sample = c(
+    "$\\bar{x}$ (x-bar)",
+    "$\\hat{p}$ (p-hat)",
+    "$s$",
+    "$s^2$",
+    "$r$",
+    "$n$"
+  )
+)
+
+notation_table %>%
+  kable(escape = FALSE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  column_spec(2, background = "#e3f2fd") %>%
+  column_spec(3, background = "#fff3e0")
+```
+
+::: {.callout-warning}
+## Common Mistake
+
+Don't confuse **population proportion** $p$ with **p-value**! Context matters.
+
+- When discussing "true proportion of successes" → population parameter $p$ or $\pi$
+- When discussing "probability of observing data if null hypothesis is true" → p-value
+:::
+
+::: {.example}
+### Example 1.3: Parameters and Statistics
+
+**Scenario**: The Army wants to know what percentage of all soldiers prefer virtual training to in-person training.
+
+- **Population**: All active-duty soldiers
+- **Parameter of interest**: $\pi$ = proportion of ALL soldiers who prefer virtual training
+- **Sample**: 1,000 randomly selected soldiers
+- **Statistic**: $\hat{p} = 0.62$ (62% of sampled soldiers prefer virtual)
+
+**Inference**: We use $\hat{p} = 0.62$ to estimate that $\pi \approx 0.62$.
+
+Later in the course, we'll learn how to quantify our uncertainty about this estimate using **confidence intervals**.
+:::
+
+## Practice Problems
+
+::: {.practice}
+### Practice 1.1
+
+For each scenario, identify:
+
+a) The population
+b) The sample (if applicable)
+c) The parameter of interest
+d) Any statistics mentioned
+
+**Scenario 1**: A study of 500 West Point graduates found that 73% were promoted to Major within 10 years of commissioning.
+
+**Scenario 2**: The registrar wants to know the average GPA of all cadets in the Class of 2026.
+
+**Scenario 3**: All members of a particular company took the ACFT. The company commander calculates the average score.
+:::
+
+::: {.practice}
+### Practice 1.2
+
+Classify each variable as categorical or quantitative. If categorical, specify nominal/ordinal/binary. If quantitative, specify discrete/continuous.
+
+a) Rank (CPT, MAJ, LTC, COL)
+b) Blood pressure (mmHg)
+c) Number of deployments
+d) Branch (Infantry, Armor, Signal, etc.)
+e) Ruck march time (minutes)
+f) Graduating class rank (1-1000)
+g) State of legal residence
+h) Combat patch (Yes/No)
+:::
+
+## Summary
+
+In this lesson, we established the foundation for statistical thinking:
+
+- **Populations** contain all individuals of interest; **samples** are subsets we actually study
+- **Parameters** describe populations (unknown); **statistics** describe samples (computed from data)
+- **Categorical variables** group individuals into categories (nominal, ordinal, binary)
+- **Quantitative variables** measure numerical quantities (discrete, continuous)
+
+Understanding these distinctions is critical for:
+
+- Choosing appropriate statistical methods
+- Correctly interpreting results
+- Communicating findings clearly
+
+In Lesson 2, we'll explore **how** to collect samples and design studies to ensure our conclusions are valid.
+
+## Additional Resources
+
+- Devore Section 1.1
+- [R for Data Science - Data Transformation](https://r4ds.had.co.nz/transform.html)
+- Practice problems in WebAssign

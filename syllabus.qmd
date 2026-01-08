@@ -1,0 +1,206 @@
+---
+title: "MA206X Course Syllabus"
+subtitle: "AY26-2: Probability and Statistics"
+author: "CPT Jonathan Day"
+---
+
+## Course Information
+
+**Course**: MA206X - Probability and Statistics
+**Credits**: 3.0
+**Textbook**: *Probability and Statistics for Engineering and the Sciences*, 9th Ed., by Jay Devore
+**Platform**: Cengage WebAssign (for homework)
+
+## Course Description
+
+This course introduces you to the foundational principles of probability and statistics, emphasizing data literacy and inference. It begins with Block I, covering data types, visualization, and basic probability rules including counting and the behavior of random variables. Block II builds on this by exploring discrete and continuous distributions, the Central Limit Theorem, and tools for one-sample inference such as confidence intervals and hypothesis testing for proportions and means. Finally, Block III develops cadets' ability to analyze relationships between variables through two-sample tests, linear regression, ANOVA, and goodness-of-fit testing. By the end of the course, cadets will be equipped to make sound, data-driven decisions grounded in statistical reasoning.
+
+## Learning Objectives
+
+By completing MA206X, you will be able to:
+
+1. Apply the Six Step Method of statistical investigation
+2. Classify and visualize data appropriately
+3. Calculate and interpret descriptive statistics
+4. Apply fundamental probability rules and counting principles
+5. Work with discrete and continuous probability distributions
+6. Construct and interpret confidence intervals
+7. Conduct hypothesis tests for means and proportions
+8. Perform linear regression and ANOVA
+9. Use R for statistical analysis and visualization
+10. Communicate statistical findings effectively
+
+## Grading
+
+| Component | Points |
+|-----------|--------|
+| WebAssign Homework | 150 |
+| WPR I | 175 |
+| WPR II | 175 |
+| Exploratory Data Analysis | 25 |
+| Tech Report | 125 |
+| Project Presentation | 50 |
+| Term End Exam (TEE) | 300 |
+| **Total** | **1000** |
+
+## Course Policies
+
+1. All assignments will be due by the due date posted in Canvas with the exception of the WebAssign homeworks, which will be due at the start of class that lesson.
+
+2. All late assignments will be deducted 10% per 24 hour period that has elapsed from the published date time group.
+
+3. Generative AI is encouraged throughout the use of this course. Ensure it is cited IAW the current DAAW and follow the assignment-specific guidance.
+
+## Course Schedule
+
+### Block I: Data and Randomness (Lessons 1-16)
+
+Foundational concepts in data types, sampling, exploratory data analysis, probability theory, and discrete/continuous distributions.
+
+*Topics*: Data types, sampling methods, bias, measures of location and spread, probability axioms, conditional probability, counting, discrete random variables, binomial/Poisson distributions, continuous random variables, normal/exponential distributions.
+
+**Assessment**: WPR I (Lesson 16)
+
+### Block II: Inference (Lessons 17-27)
+
+Statistical inference for single populations and comparisons between two populations.
+
+*Topics*: Central Limit Theorem, confidence intervals, hypothesis testing framework, one-sample tests (t-test, z-test), two-sample tests, paired data, Type I/II errors, statistical power.
+
+**Assessment**: WPR II (Lesson 27)
+
+### Block III: Regression Modeling (Lessons 28-40)
+
+Modeling relationships between variables and analysis of variance.
+
+*Topics*: Simple linear regression, multiple regression, categorical predictors, interaction terms, model diagnostics, ANOVA (one-way and two-way), multiple comparisons, project work.
+
+**Assessment**: Tech Report (Lesson 36), Project Presentation (Lessons 39-40), TEE
+
+## Course Project
+
+Throughout this course you will be executing a statistical investigation into data hosted inside the Vantage enterprise on actual data from an Army unit. You will:
+
+1. Select a dataset from Army Vantage
+2. Formulate research questions
+3. Conduct exploratory data analysis
+4. Perform appropriate statistical tests
+5. Build regression models
+6. Present findings in a technical report and presentation
+
+**Deliverables**:
+
+- EDA Assignment (Lesson 5)
+- Technical Report (Lesson 36)
+- Peer Review (Lesson 34)
+- IPR Presentation (Lesson 37)
+- Final Presentation (Lessons 39-40)
+
+## Technology
+
+### R and RStudio
+
+R is the primary statistical software for this course. You will use R for:
+
+- Data manipulation and cleaning
+- Descriptive statistics
+- Data visualization
+- Statistical inference
+- Regression modeling
+
+**Resources**:
+
+- [R for Data Science](https://r4ds.had.co.nz/)
+- [RStudio Cheatsheets](https://www.rstudio.com/resources/cheatsheets/)
+- [Code Annex](code_annex.qmd) - Course-specific R reference
+
+### WebAssign
+
+Homework assignments and some assessments will be completed through Cengage WebAssign. Instructions for access are available on Canvas.
+
+### Army Vantage
+
+For the course project, you will access real Army data through the Vantage platform. Account setup instructions are available on Canvas.
+
+## Additional Resources
+
+- **Office Hours**: By appointment
+- **Course Website**: [https://usma-stats.github.io](https://usma-stats.github.io) (or as designated)
+- **Canvas**: Assignment submissions, grades, announcements
+- **Math Resource Center**: Drop-in tutoring available
+
+## Academic Integrity
+
+All work submitted must be your own. Collaboration on homework is encouraged, but submitted work must reflect your own understanding. Unauthorized collaboration on graded assessments will be handled according to the Cadet Honor Code.
+
+When using Generative AI:
+
+- Cite all AI assistance per DAAW requirements
+- Use AI for coding assistance, not for conceptual understanding
+- Do not use AI to generate written analysis or interpretation
+
+## Accommodation Statement
+
+If you require accommodations for a documented disability, please contact the Office of the Dean and provide documentation as early as possible in the semester.
+
+---
+
+## Detailed Lesson Schedule
+
+### Block I: Data and Randomness
+
+| LSN | Topic | Reading |
+|-----|-------|---------|
+| 1 | Types of Data, Sampling, & Study Design | 1.1 |
+| 2 | Sampling & Study Design | 1.2 |
+| 3 | Measures of Location | 1.3 |
+| 4 | Measures of Variability | 1.4 |
+| 5 | Exploratory Data Analysis Lab | - |
+| 6 | Probability Basics | 2.1, 2.2 |
+| 7 | Conditional Probability | 2.4 |
+| 8 | Independence | 2.3, 2.5 |
+| 9 | Discrete Random Variables | 3.1-3.3 |
+| 10 | Binomial Distribution | 3.4 |
+| 11 | Poisson Distribution | 3.6 |
+| 12 | Continuous Random Variables | 4.1, 4.2 |
+| 13 | Normal Distribution | 4.3 |
+| 14 | Exponential Distribution | 4.4 |
+| 15 | Review | - |
+| 16 | **WPR I** | - |
+
+### Block II: Inference
+
+| LSN | Topic | Reading |
+|-----|-------|---------|
+| 17 | Central Limit Theorem | 5.3, 5.4 |
+| 18 | Confidence Intervals I | 7.1, 7.2 |
+| 19 | Confidence Intervals II | 7.3 |
+| 20 | Intro to Hypothesis Testing | 8.1, 8.2 |
+| 21 | One Sample t-Test | 8.3 |
+| 22 | One Proportion Z-Test | 8.4 |
+| 23 | Two Sample t-Test | 9.2 |
+| 24 | Paired t-Test | 9.3 |
+| 25 | Two Population Proportions | 9.4 |
+| 26 | Review | - |
+| 27 | **WPR II** | - |
+
+### Block III: Regression Modeling
+
+| LSN | Topic | Reading |
+|-----|-------|---------|
+| 28 | Simple Linear Regression I | 12.1, 12.2 |
+| 29 | Course Drop (Plebe Parent Weekend) | - |
+| 30 | Simple Linear Regression II | 12.3, 12.5 |
+| 31 | Multiple Linear Regression I | Supplement |
+| 32 | Multiple Linear Regression II | Supplement |
+| 33 | Multiple Linear Regression III | Supplement |
+| 34 | Project Peer Review | - |
+| 35 | Course Lecture Drop | - |
+| 36 | ANOVA I | 10.1 |
+| 37 | Project IPR | - |
+| 38 | ANOVA II | 10.2 |
+| 39-40 | Project Presentations | - |
+
+---
+
+*For the most current information, assignments, and announcements, refer to Canvas.*

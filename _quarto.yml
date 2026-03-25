@@ -22,6 +22,8 @@ website:
             href: lesson_04.qmd
           - text: "Lesson 5: Exploratory Data Analysis Lab"
             href: lesson_05.qmd
+          - text: "Simple Linear Regression"
+            href: https://usma-stats.github.io/slr-explorer.html
       - text: "Resources"
         menu:
           - text: "Code Annex"

@@ -595,7 +595,7 @@
         <div class="card-title">Display</div>
         <label class="toggle-row"><input type="checkbox" id="chk-residuals" checked> Show residuals</label>
         <label class="toggle-row"><input type="checkbox" id="chk-squares"> Show SSE squares</label>
-        <label class="toggle-row"><input type="checkbox" id="chk-means"> Show x̄, ȳ lines</label>
+        <label class="toggle-row"><input type="checkbox" id="chk-means"> Show <span id="label-means"></span> lines</label>
       </div>
 
       <div class="card">
@@ -652,7 +652,7 @@
     $$\bar{y} - \hat{\beta}_0 - \hat{\beta}_1 \bar{x} = 0$$
     <p>Solving for $\hat{\beta}_0$:</p>
     $$\boxed{\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}}$$
-    <p>This tells us the OLS line always passes through the point $(\bar{x}, \bar{y})$ — which you can verify in the interactive plot above by toggling "Show x̄, ȳ lines."</p>
+    <p>This tells us the OLS line always passes through the point $(\bar{x}, \bar{y})$ — which you can verify in the interactive plot above by toggling "Show $\bar{x}, \bar{y}$ lines."</p>
   </div>
 
   <!-- Partial wrt beta_1 -->
@@ -700,10 +700,11 @@
     if (typeof katex !== 'undefined') {
       katex.render('\\hat{\\beta}_0 \\text{ (intercept)}', document.getElementById('label-b0'), { throwOnError: false });
       katex.render('\\hat{\\beta}_1 \\text{ (slope)}', document.getElementById('label-b1'), { throwOnError: false });
+      katex.render('\\bar{x}, \\bar{y}', document.getElementById('label-means'), { throwOnError: false });
     } else {
-      // Fallback if KaTeX hasn't loaded yet
-      document.getElementById('label-b0').textContent = 'β₀-hat (intercept)';
-      document.getElementById('label-b1').textContent = 'β₁-hat (slope)';
+      document.getElementById('label-b0').textContent = 'b0-hat (intercept)';
+      document.getElementById('label-b1').textContent = 'b1-hat (slope)';
+      document.getElementById('label-means').textContent = 'x-bar, y-bar';
       setTimeout(renderLabels, 200);
     }
   }

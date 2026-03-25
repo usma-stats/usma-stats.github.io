@@ -241,7 +241,6 @@
   .equation.manual { color: var(--manual-line); }
 
   .sse-compare { margin-top: 0.6rem; }
-
   .sse-bar-wrapper { margin-bottom: 0.4rem; }
 
   .sse-bar-label {
@@ -424,9 +423,11 @@
           <button class="mode-tab" data-mode="manual">Fit Your Own</button>
         </div>
         <div class="toolbar-spacer"></div>
+        <button class="toolbar-btn" id="btn-zoom-fit">Fit View</button>
+        <button class="toolbar-btn" id="btn-zoom-reset">Reset 0–10</button>
         <button class="toolbar-btn" id="btn-undo">Undo</button>
         <button class="toolbar-btn" id="btn-clear">Clear All</button>
-        <span class="toolbar-hint">Click to add · Drag to move · Right-click to delete</span>
+        <span class="toolbar-hint">Click to add · Drag to move · Scroll to zoom · Shift+drag to pan</span>
       </div>
       <svg class="plot" id="plot"></svg>
       <div class="tooltip" id="tooltip"></div>
@@ -536,13 +537,19 @@
   const plotW = W - margin.left - margin.right;
   const plotH = H - margin.top - margin.bottom;
 
-  let xDomain = [0, 10], yDomain = [0, 10];
+  const DEFAULT_DOMAIN = { x: [0, 10], y: [0, 10] };
+
+  let xDomain = [...DEFAULT_DOMAIN.x];
+  let yDomain = [...DEFAULT_DOMAIN.y];
+
   let points = [];
   let history = [];
   let mode = 'explore';
   let manualB0 = 0, manualB1 = 1;
   let showResiduals = true, showSquares = false, showMeans = false;
   let nextId = 0;
+  let isPanning = false;
+  let didPan = false; // track if a pan actually happened (to suppress click-to-add)
 
   const svg = d3.select('#plot')
     .attr('viewBox', `0 0 ${W} ${H}`)
@@ -579,39 +586,109 @@
   const manualLineLayer = clipped.append('g');
   const pointsLayer = clipped.append('g');
 
-  // Click-catcher rect behind everything inside clipped group
   clipped.insert('rect', ':first-child')
     .attr('width', plotW).attr('height', plotH)
-    .attr('fill', 'transparent')
-    .attr('class', 'click-catcher');
+    .attr('fill', 'transparent');
 
   const tooltip = document.getElementById('tooltip');
 
-  function drawAxes() {
-    xScale.domain(xDomain);
-    yScale.domain(yDomain);
-    xAxisG.transition().duration(180).call(d3.axisBottom(xScale).ticks(8));
-    yAxisG.transition().duration(180).call(d3.axisLeft(yScale).ticks(6));
-    gridX.transition().duration(180).call(d3.axisBottom(xScale).ticks(8).tickSize(-plotH).tickFormat(''));
-    gridY.transition().duration(180).call(d3.axisLeft(yScale).ticks(6).tickSize(-plotW).tickFormat(''));
-  }
+  // ===== ZOOM (scroll wheel, centered on cursor) =====
+  svg.on('wheel', function(event) {
+    event.preventDefault();
+    const factor = event.deltaY > 0 ? 1.12 : 1 / 1.12;
+    const [mx, my] = d3.pointer(event, g.node());
+    const cx = xScale.invert(Math.max(0, Math.min(plotW, mx)));
+    const cy = yScale.invert(Math.max(0, Math.min(plotH, my)));
+    const xR = xDomain[1] - xDomain[0];
+    const yR = yDomain[1] - yDomain[0];
+    const fx = (cx - xDomain[0]) / xR;
+    const fy = (cy - yDomain[0]) / yR;
+    const nxR = xR * factor, nyR = yR * factor;
+    xDomain = [cx - fx * nxR, cx + (1 - fx) * nxR];
+    yDomain = [cy - fy * nyR, cy + (1 - fy) * nyR];
+    render();
+  }, { passive: false });
 
-  function updateDomain() {
+  // ===== PAN (shift+drag) =====
+  let panStart = null, panDomainSnap = null;
+
+  svg.on('mousedown', function(event) {
+    if (!event.shiftKey) return;
+    event.preventDefault();
+    isPanning = true;
+    didPan = false;
+    svg.style('cursor', 'move');
+    panStart = d3.pointer(event, g.node());
+    panDomainSnap = { x: [...xDomain], y: [...yDomain] };
+  });
+
+  d3.select(window).on('mousemove.pan', function(event) {
+    if (!isPanning) return;
+    didPan = true;
+    const cur = d3.pointer(event, g.node());
+    // compute shift in data units using snapped domain
+    const dxPx = cur[0] - panStart[0];
+    const dyPx = cur[1] - panStart[1];
+    const xR = panDomainSnap.x[1] - panDomainSnap.x[0];
+    const yR = panDomainSnap.y[1] - panDomainSnap.y[0];
+    const dx = -(dxPx / plotW) * xR;
+    const dy = (dyPx / plotH) * yR;
+    xDomain = [panDomainSnap.x[0] + dx, panDomainSnap.x[1] + dx];
+    yDomain = [panDomainSnap.y[0] + dy, panDomainSnap.y[1] + dy];
+    render();
+  });
+
+  d3.select(window).on('mouseup.pan', function() {
+    if (isPanning) {
+      isPanning = false;
+      svg.style('cursor', 'crosshair');
+      panStart = null;
+      panDomainSnap = null;
+      // briefly set didPan so the click handler ignores the mouseup-click
+      setTimeout(() => { didPan = false; }, 50);
+    }
+  });
+
+  // ===== VIEW CONTROLS =====
+  function fitToData() {
     if (points.length === 0) {
-      xDomain = [0, 10]; yDomain = [0, 10];
+      xDomain = [...DEFAULT_DOMAIN.x];
+      yDomain = [...DEFAULT_DOMAIN.y];
+    } else if (points.length === 1) {
+      xDomain = [points[0].x - 5, points[0].x + 5];
+      yDomain = [points[0].y - 5, points[0].y + 5];
     } else {
       const xs = points.map(p => p.x), ys = points.map(p => p.y);
-      const pad = 0.18;
+      const pad = 0.2;
       const xMin = Math.min(...xs), xMax = Math.max(...xs);
       const yMin = Math.min(...ys), yMax = Math.max(...ys);
       const xR = (xMax - xMin) || 2, yR = (yMax - yMin) || 2;
       xDomain = [xMin - xR * pad, xMax + xR * pad];
       yDomain = [yMin - yR * pad, yMax + yR * pad];
     }
+    render();
+  }
+
+  function resetView() {
+    xDomain = [...DEFAULT_DOMAIN.x];
+    yDomain = [...DEFAULT_DOMAIN.y];
+    render();
+  }
+
+  function updateSliderRange() {
     const b0Slider = document.getElementById('slider-b0');
     const yR = yDomain[1] - yDomain[0];
     b0Slider.min = (yDomain[0] - yR).toFixed(1);
     b0Slider.max = (yDomain[1] + yR).toFixed(1);
+  }
+
+  function drawAxes() {
+    xScale.domain(xDomain);
+    yScale.domain(yDomain);
+    xAxisG.transition().duration(100).call(d3.axisBottom(xScale).ticks(8));
+    yAxisG.transition().duration(100).call(d3.axisLeft(yScale).ticks(6));
+    gridX.transition().duration(100).call(d3.axisBottom(xScale).ticks(8).tickSize(-plotH).tickFormat(''));
+    gridY.transition().duration(100).call(d3.axisLeft(yScale).ticks(6).tickSize(-plotW).tickFormat(''));
   }
 
   function computeOLS() {
@@ -639,9 +716,8 @@
   }
 
   function render() {
-    updateDomain();
     drawAxes();
-
+    updateSliderRange();
     const ols = computeOLS();
 
     // OLS line
@@ -669,17 +745,15 @@
     // Residuals
     residualsLayer.selectAll('*').remove();
     if (showResiduals && ols) {
-      if (mode !== 'manual' || true) {
-        points.forEach(p => {
-          const yHat = ols.b0 + ols.b1 * p.x;
-          residualsLayer.append('line')
-            .attr('x1', xScale(p.x)).attr('y1', yScale(p.y))
-            .attr('x2', xScale(p.x)).attr('y2', yScale(yHat))
-            .attr('stroke', 'var(--residual-ols)').attr('stroke-width', 1.5)
-            .attr('stroke-dasharray', '3,2')
-            .attr('opacity', mode === 'manual' ? 0.3 : 0.7);
-        });
-      }
+      points.forEach(p => {
+        const yHat = ols.b0 + ols.b1 * p.x;
+        residualsLayer.append('line')
+          .attr('x1', xScale(p.x)).attr('y1', yScale(p.y))
+          .attr('x2', xScale(p.x)).attr('y2', yScale(yHat))
+          .attr('stroke', 'var(--residual-ols)').attr('stroke-width', 1.5)
+          .attr('stroke-dasharray', '3,2')
+          .attr('opacity', mode === 'manual' ? 0.3 : 0.7);
+      });
       if (mode === 'manual') {
         points.forEach(p => {
           const yHat = manualB0 + manualB1 * p.x;
@@ -750,11 +824,13 @@
       .attr('cx', d => xScale(d.x)).attr('cy', d => yScale(d.y));
 
     merged.call(d3.drag()
-      .on('start', function() {
+      .on('start', function(event) {
+        if (event.sourceEvent && event.sourceEvent.shiftKey) return;
         d3.select(this).attr('cursor', 'grabbing').raise();
         saveHistory();
       })
       .on('drag', function(event, d) {
+        if (event.sourceEvent && event.sourceEvent.shiftKey) return;
         const [mx, my] = d3.pointer(event, clipped.node());
         d.x = xScale.invert(Math.max(0, Math.min(plotW, mx)));
         d.y = yScale.invert(Math.max(0, Math.min(plotH, my)));
@@ -844,13 +920,15 @@
     if (history.length > 50) history.shift();
   }
 
-  // --- Click to add ---
+  // --- Click to add (suppressed during pan) ---
   svg.on('click', function(event) {
+    if (event.shiftKey || didPan) return;
     if (event.target.tagName === 'circle') return;
     const [mx, my] = d3.pointer(event, clipped.node());
     if (mx < 0 || mx > plotW || my < 0 || my > plotH) return;
     saveHistory();
     points.push({ x: xScale.invert(mx), y: yScale.invert(my), id: nextId++ });
+    // Do NOT auto-fit — keep current view so user stays oriented
     render();
   });
 
@@ -885,6 +963,8 @@
   // --- Buttons ---
   document.getElementById('btn-clear').addEventListener('click', () => { saveHistory(); points = []; render(); });
   document.getElementById('btn-undo').addEventListener('click', () => { if (history.length) { points = history.pop(); render(); } });
+  document.getElementById('btn-zoom-fit').addEventListener('click', fitToData);
+  document.getElementById('btn-zoom-reset').addEventListener('click', resetView);
 
   // --- Presets ---
   const presets = {
@@ -900,7 +980,7 @@
     btn.addEventListener('click', () => {
       saveHistory();
       points = presets[btn.dataset.preset].map(p => ({ ...p, id: nextId++ }));
-      render();
+      fitToData();
     });
   });
 
@@ -913,7 +993,6 @@
   });
 
   // Init
-  drawAxes();
   render();
 })();
 </script>

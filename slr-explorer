@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SLR Explorer — MA206X Interactive Regression</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0f14;
+    --surface: #141820;
+    --surface-2: #1a1f2b;
+    --border: #2a3040;
+    --text: #e0e4ec;
+    --text-dim: #7a8494;
+    --accent: #4ecdc4;
+    --accent-glow: rgba(78, 205, 196, 0.15);
+    --ols-line: #4ecdc4;
+    --manual-line: #ff6b6b;
+    --residual-ols: rgba(78, 205, 196, 0.5);
+    --residual-manual: rgba(255, 107, 107, 0.5);
+    --point-fill: #f0f2f5;
+    --point-stroke: #4ecdc4;
+    --gold: #ffd93d;
+    --mono: 'JetBrains Mono', monospace;
+    --serif: 'Source Serif 4', Georgia, serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 1.75rem 1.5rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  header h1 span { color: var(--accent); }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 310px;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  .plot-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.15rem;
+    position: relative;
+  }
+
+  .plot-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .mode-tabs {
+    display: flex;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+
+  .mode-tab {
+    padding: 5px 13px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .mode-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .mode-tab:hover:not(.active) { color: var(--text); }
+
+  .toolbar-btn {
+    padding: 5px 11px;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .toolbar-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .toolbar-spacer { flex: 1; }
+
+  .toolbar-hint {
+    font-size: 0.66rem;
+    color: var(--text-dim);
+    opacity: 0.65;
+  }
+
+  svg.plot {
+    width: 100%;
+    height: auto;
+    display: block;
+    cursor: crosshair;
+  }
+
+  .axis path, .axis line { stroke: var(--border); }
+  .axis text {
+    fill: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .grid line { stroke: var(--border); stroke-opacity: 0.35; }
+  .grid path { display: none; }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.95rem 1.05rem;
+    animation: fadeIn 0.35s ease both;
+  }
+
+  .card:nth-child(2) { animation-delay: 0.04s; }
+  .card:nth-child(3) { animation-delay: 0.08s; }
+  .card:nth-child(4) { animation-delay: 0.12s; }
+
+  .card-title {
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 0.65rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(42, 48, 64, 0.4);
+  }
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-label { font-size: 0.76rem; color: var(--text-dim); }
+  .stat-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat-value.ols { color: var(--ols-line); }
+  .stat-value.manual { color: var(--manual-line); }
+  .stat-value.gold { color: var(--gold); }
+
+  .equation-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin-bottom: 0.65rem;
+    text-align: center;
+  }
+
+  .equation {
+    font-family: var(--serif);
+    font-size: 1rem;
+    font-style: italic;
+  }
+
+  .equation.ols { color: var(--ols-line); }
+  .equation.manual { color: var(--manual-line); }
+
+  .sse-compare { margin-top: 0.6rem; }
+
+  .sse-bar-wrapper { margin-bottom: 0.4rem; }
+
+  .sse-bar-label {
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+
+  .sse-bar-track {
+    height: 8px;
+    background: var(--bg);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .sse-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.25s ease;
+  }
+
+  .sse-bar-fill.ols { background: var(--ols-line); }
+  .sse-bar-fill.manual { background: var(--manual-line); }
+
+  .slider-group { margin-bottom: 0.6rem; }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 3px;
+  }
+
+  .slider-label { font-size: 0.73rem; color: var(--text-dim); }
+
+  .slider-val {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--manual-line);
+    font-variant-numeric: tabular-nums;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    background: var(--manual-line);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    cursor: grab;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--manual-line);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    cursor: grab;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 3px 0;
+    cursor: pointer;
+    font-size: 0.76rem;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+
+  .toggle-row:hover { color: var(--text); }
+
+  .toggle-row input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 14px; height: 14px;
+    cursor: pointer;
+  }
+
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .preset-btn {
+    padding: 5px 7px;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .preset-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .tooltip {
+    position: absolute;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 9px;
+    font-size: 0.7rem;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s;
+    z-index: 10;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .info-callout {
+    background: var(--accent-glow);
+    border: 1px solid rgba(78, 205, 196, 0.25);
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.73rem;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .info-callout strong { color: var(--accent); }
+
+  .sse-square {
+    stroke-width: 1;
+    opacity: 0.15;
+  }
+  .sse-square.ols { fill: var(--ols-line); stroke: var(--ols-line); }
+  .sse-square.manual { fill: var(--manual-line); stroke: var(--manual-line); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 920px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { flex-direction: row; flex-wrap: wrap; }
+    .card { flex: 1; min-width: 250px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>SLR <span>Explorer</span></h1>
+    <p>MA206X — Interactive Simple Linear Regression</p>
+  </header>
+
+  <div class="layout">
+    <div class="plot-container">
+      <div class="plot-toolbar">
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="explore">Explore</button>
+          <button class="mode-tab" data-mode="manual">Fit Your Own</button>
+        </div>
+        <div class="toolbar-spacer"></div>
+        <button class="toolbar-btn" id="btn-undo">Undo</button>
+        <button class="toolbar-btn" id="btn-clear">Clear All</button>
+        <span class="toolbar-hint">Click to add · Drag to move · Right-click to delete</span>
+      </div>
+      <svg class="plot" id="plot"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="card" id="card-ols">
+        <div class="card-title">OLS Regression</div>
+        <div class="equation-box">
+          <div class="equation ols" id="eq-ols">ŷ = — (need ≥ 2 points)</div>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">β̂₀ (intercept)</span>
+          <span class="stat-value ols" id="stat-b0">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">β̂₁ (slope)</span>
+          <span class="stat-value ols" id="stat-b1">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">R²</span>
+          <span class="stat-value ols" id="stat-r2">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">SSE</span>
+          <span class="stat-value ols" id="stat-sse-ols">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">n</span>
+          <span class="stat-value" id="stat-n">0</span>
+        </div>
+      </div>
+
+      <div class="card" id="card-manual" style="display:none;">
+        <div class="card-title">Your Line</div>
+        <div class="equation-box">
+          <div class="equation manual" id="eq-manual">ŷ = —</div>
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Intercept (b₀)</span>
+            <span class="slider-val" id="slider-b0-val">0.00</span>
+          </div>
+          <input type="range" id="slider-b0" min="-10" max="20" step="0.1" value="0">
+        </div>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span class="slider-label">Slope (b₁)</span>
+            <span class="slider-val" id="slider-b1-val">1.00</span>
+          </div>
+          <input type="range" id="slider-b1" min="-5" max="5" step="0.05" value="1">
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Your SSE</span>
+          <span class="stat-value manual" id="stat-sse-manual">—</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">OLS SSE</span>
+          <span class="stat-value ols" id="stat-sse-ols2">—</span>
+        </div>
+        <div class="sse-compare">
+          <div class="sse-bar-wrapper">
+            <div class="sse-bar-label"><span>OLS</span><span id="bar-ols-val">—</span></div>
+            <div class="sse-bar-track"><div class="sse-bar-fill ols" id="bar-ols" style="width:0%"></div></div>
+          </div>
+          <div class="sse-bar-wrapper">
+            <div class="sse-bar-label"><span>Yours</span><span id="bar-manual-val">—</span></div>
+            <div class="sse-bar-track"><div class="sse-bar-fill manual" id="bar-manual" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Display</div>
+        <label class="toggle-row"><input type="checkbox" id="chk-residuals" checked> Show residuals</label>
+        <label class="toggle-row"><input type="checkbox" id="chk-squares"> Show SSE squares</label>
+        <label class="toggle-row"><input type="checkbox" id="chk-means"> Show x̄, ȳ lines</label>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Sample Datasets</div>
+        <div class="preset-grid">
+          <button class="preset-btn" data-preset="positive">Positive</button>
+          <button class="preset-btn" data-preset="negative">Negative</button>
+          <button class="preset-btn" data-preset="none">No trend</button>
+          <button class="preset-btn" data-preset="outlier">Outlier</button>
+          <button class="preset-btn" data-preset="curve">Curved</button>
+          <button class="preset-btn" data-preset="anscombe">Anscombe I</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="info-callout">
+          <strong>Key insight:</strong> OLS minimizes SSE. Switch to "Fit Your Own" and try to beat it — you can't! Every other line will have SSE ≥ the OLS solution.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const W = 720, H = 460;
+  const margin = { top: 20, right: 25, bottom: 48, left: 52 };
+  const plotW = W - margin.left - margin.right;
+  const plotH = H - margin.top - margin.bottom;
+
+  let xDomain = [0, 10], yDomain = [0, 10];
+  let points = [];
+  let history = [];
+  let mode = 'explore';
+  let manualB0 = 0, manualB1 = 1;
+  let showResiduals = true, showSquares = false, showMeans = false;
+  let nextId = 0;
+
+  const svg = d3.select('#plot')
+    .attr('viewBox', `0 0 ${W} ${H}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet');
+
+  const defs = svg.append('defs');
+  defs.append('clipPath').attr('id', 'clip')
+    .append('rect').attr('width', plotW).attr('height', plotH);
+
+  const g = svg.append('g')
+    .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const xScale = d3.scaleLinear().domain(xDomain).range([0, plotW]);
+  const yScale = d3.scaleLinear().domain(yDomain).range([plotH, 0]);
+
+  const gridX = g.append('g').attr('class', 'grid').attr('transform', `translate(0,${plotH})`);
+  const gridY = g.append('g').attr('class', 'grid');
+  const xAxisG = g.append('g').attr('class', 'axis').attr('transform', `translate(0,${plotH})`);
+  const yAxisG = g.append('g').attr('class', 'axis');
+
+  g.append('text').attr('x', plotW / 2).attr('y', plotH + 40)
+    .attr('text-anchor', 'middle').attr('fill', 'var(--text-dim)')
+    .attr('font-family', 'var(--mono)').attr('font-size', '12px').text('x');
+  g.append('text').attr('transform', 'rotate(-90)')
+    .attr('x', -plotH / 2).attr('y', -38)
+    .attr('text-anchor', 'middle').attr('fill', 'var(--text-dim)')
+    .attr('font-family', 'var(--mono)').attr('font-size', '12px').text('y');
+
+  const clipped = g.append('g').attr('clip-path', 'url(#clip)');
+  const squaresLayer = clipped.append('g');
+  const residualsLayer = clipped.append('g');
+  const meanLinesLayer = clipped.append('g');
+  const olsLineLayer = clipped.append('g');
+  const manualLineLayer = clipped.append('g');
+  const pointsLayer = clipped.append('g');
+
+  // Click-catcher rect behind everything inside clipped group
+  clipped.insert('rect', ':first-child')
+    .attr('width', plotW).attr('height', plotH)
+    .attr('fill', 'transparent')
+    .attr('class', 'click-catcher');
+
+  const tooltip = document.getElementById('tooltip');
+
+  function drawAxes() {
+    xScale.domain(xDomain);
+    yScale.domain(yDomain);
+    xAxisG.transition().duration(180).call(d3.axisBottom(xScale).ticks(8));
+    yAxisG.transition().duration(180).call(d3.axisLeft(yScale).ticks(6));
+    gridX.transition().duration(180).call(d3.axisBottom(xScale).ticks(8).tickSize(-plotH).tickFormat(''));
+    gridY.transition().duration(180).call(d3.axisLeft(yScale).ticks(6).tickSize(-plotW).tickFormat(''));
+  }
+
+  function updateDomain() {
+    if (points.length === 0) {
+      xDomain = [0, 10]; yDomain = [0, 10];
+    } else {
+      const xs = points.map(p => p.x), ys = points.map(p => p.y);
+      const pad = 0.18;
+      const xMin = Math.min(...xs), xMax = Math.max(...xs);
+      const yMin = Math.min(...ys), yMax = Math.max(...ys);
+      const xR = (xMax - xMin) || 2, yR = (yMax - yMin) || 2;
+      xDomain = [xMin - xR * pad, xMax + xR * pad];
+      yDomain = [yMin - yR * pad, yMax + yR * pad];
+    }
+    const b0Slider = document.getElementById('slider-b0');
+    const yR = yDomain[1] - yDomain[0];
+    b0Slider.min = (yDomain[0] - yR).toFixed(1);
+    b0Slider.max = (yDomain[1] + yR).toFixed(1);
+  }
+
+  function computeOLS() {
+    const n = points.length;
+    if (n < 2) return null;
+    const xs = points.map(p => p.x), ys = points.map(p => p.y);
+    const xBar = d3.mean(xs), yBar = d3.mean(ys);
+    let ssxy = 0, ssxx = 0, ssyy = 0;
+    for (let i = 0; i < n; i++) {
+      ssxy += (xs[i] - xBar) * (ys[i] - yBar);
+      ssxx += (xs[i] - xBar) ** 2;
+      ssyy += (ys[i] - yBar) ** 2;
+    }
+    if (ssxx === 0) return null;
+    const b1 = ssxy / ssxx;
+    const b0 = yBar - b1 * xBar;
+    let sse = 0;
+    for (let i = 0; i < n; i++) sse += (ys[i] - (b0 + b1 * xs[i])) ** 2;
+    const r2 = ssyy === 0 ? 1 : 1 - sse / ssyy;
+    return { b0, b1, sse, r2, xBar, yBar, n };
+  }
+
+  function computeSSE(b0, b1) {
+    return points.reduce((s, p) => s + (p.y - (b0 + b1 * p.x)) ** 2, 0);
+  }
+
+  function render() {
+    updateDomain();
+    drawAxes();
+
+    const ols = computeOLS();
+
+    // OLS line
+    olsLineLayer.selectAll('*').remove();
+    if (ols) {
+      const x0 = xDomain[0], x1 = xDomain[1];
+      olsLineLayer.append('line')
+        .attr('x1', xScale(x0)).attr('y1', yScale(ols.b0 + ols.b1 * x0))
+        .attr('x2', xScale(x1)).attr('y2', yScale(ols.b0 + ols.b1 * x1))
+        .attr('stroke', 'var(--ols-line)').attr('stroke-width', 2.5)
+        .attr('stroke-dasharray', mode === 'manual' ? '6,4' : 'none')
+        .attr('opacity', mode === 'manual' ? 0.45 : 1);
+    }
+
+    // Manual line
+    manualLineLayer.selectAll('*').remove();
+    if (mode === 'manual' && points.length >= 1) {
+      const x0 = xDomain[0], x1 = xDomain[1];
+      manualLineLayer.append('line')
+        .attr('x1', xScale(x0)).attr('y1', yScale(manualB0 + manualB1 * x0))
+        .attr('x2', xScale(x1)).attr('y2', yScale(manualB0 + manualB1 * x1))
+        .attr('stroke', 'var(--manual-line)').attr('stroke-width', 2.5);
+    }
+
+    // Residuals
+    residualsLayer.selectAll('*').remove();
+    if (showResiduals && ols) {
+      if (mode !== 'manual' || true) {
+        points.forEach(p => {
+          const yHat = ols.b0 + ols.b1 * p.x;
+          residualsLayer.append('line')
+            .attr('x1', xScale(p.x)).attr('y1', yScale(p.y))
+            .attr('x2', xScale(p.x)).attr('y2', yScale(yHat))
+            .attr('stroke', 'var(--residual-ols)').attr('stroke-width', 1.5)
+            .attr('stroke-dasharray', '3,2')
+            .attr('opacity', mode === 'manual' ? 0.3 : 0.7);
+        });
+      }
+      if (mode === 'manual') {
+        points.forEach(p => {
+          const yHat = manualB0 + manualB1 * p.x;
+          residualsLayer.append('line')
+            .attr('x1', xScale(p.x)).attr('y1', yScale(p.y))
+            .attr('x2', xScale(p.x)).attr('y2', yScale(yHat))
+            .attr('stroke', 'var(--residual-manual)').attr('stroke-width', 1.5)
+            .attr('opacity', 0.7);
+        });
+      }
+    }
+
+    // SSE squares
+    squaresLayer.selectAll('*').remove();
+    if (showSquares && ols) {
+      const drawSq = (b0, b1, cls) => {
+        points.forEach(p => {
+          const yHat = b0 + b1 * p.x;
+          const res = Math.abs(p.y - yHat);
+          const side = Math.abs(yScale(0) - yScale(res));
+          const px = xScale(p.x);
+          const topY = Math.min(yScale(p.y), yScale(yHat));
+          squaresLayer.append('rect')
+            .attr('x', px).attr('y', topY)
+            .attr('width', side).attr('height', side)
+            .attr('class', `sse-square ${cls}`);
+        });
+      };
+      drawSq(ols.b0, ols.b1, 'ols');
+      if (mode === 'manual') drawSq(manualB0, manualB1, 'manual');
+    }
+
+    // Mean lines
+    meanLinesLayer.selectAll('*').remove();
+    if (showMeans && ols) {
+      meanLinesLayer.append('line')
+        .attr('x1', xScale(ols.xBar)).attr('y1', 0)
+        .attr('x2', xScale(ols.xBar)).attr('y2', plotH)
+        .attr('stroke', 'var(--gold)').attr('stroke-width', 1)
+        .attr('stroke-dasharray', '5,5').attr('opacity', 0.55);
+      meanLinesLayer.append('line')
+        .attr('x1', 0).attr('y1', yScale(ols.yBar))
+        .attr('x2', plotW).attr('y2', yScale(ols.yBar))
+        .attr('stroke', 'var(--gold)').attr('stroke-width', 1)
+        .attr('stroke-dasharray', '5,5').attr('opacity', 0.55);
+      meanLinesLayer.append('circle')
+        .attr('cx', xScale(ols.xBar)).attr('cy', yScale(ols.yBar))
+        .attr('r', 5).attr('fill', 'var(--gold)').attr('opacity', 0.85);
+      meanLinesLayer.append('text')
+        .attr('x', xScale(ols.xBar) + 8).attr('y', yScale(ols.yBar) - 8)
+        .attr('fill', 'var(--gold)')
+        .attr('font-family', 'var(--mono)').attr('font-size', '10px')
+        .text(`(${ols.xBar.toFixed(1)}, ${ols.yBar.toFixed(1)})`);
+    }
+
+    // Points
+    const circles = pointsLayer.selectAll('circle').data(points, d => d.id);
+    circles.exit().transition().duration(150).attr('r', 0).remove();
+
+    const enter = circles.enter().append('circle')
+      .attr('cx', d => xScale(d.x)).attr('cy', d => yScale(d.y))
+      .attr('r', 0)
+      .attr('fill', 'var(--point-fill)').attr('stroke', 'var(--point-stroke)')
+      .attr('stroke-width', 2).attr('cursor', 'grab');
+    enter.transition().duration(180).attr('r', 6);
+
+    const merged = enter.merge(circles)
+      .attr('cx', d => xScale(d.x)).attr('cy', d => yScale(d.y));
+
+    merged.call(d3.drag()
+      .on('start', function() {
+        d3.select(this).attr('cursor', 'grabbing').raise();
+        saveHistory();
+      })
+      .on('drag', function(event, d) {
+        const [mx, my] = d3.pointer(event, clipped.node());
+        d.x = xScale.invert(Math.max(0, Math.min(plotW, mx)));
+        d.y = yScale.invert(Math.max(0, Math.min(plotH, my)));
+        render();
+      })
+      .on('end', function() { d3.select(this).attr('cursor', 'grab'); })
+    );
+
+    merged
+      .on('mouseenter', function(event, d) {
+        const ols2 = computeOLS();
+        let extra = '';
+        if (ols2) {
+          const yHat = ols2.b0 + ols2.b1 * d.x;
+          extra = ` · ε = ${(d.y - yHat).toFixed(2)}`;
+        }
+        tooltip.textContent = `(${d.x.toFixed(2)}, ${d.y.toFixed(2)})${extra}`;
+        tooltip.style.opacity = 1;
+        const rect = document.querySelector('.plot-container').getBoundingClientRect();
+        tooltip.style.left = (event.clientX - rect.left + 14) + 'px';
+        tooltip.style.top = (event.clientY - rect.top - 28) + 'px';
+      })
+      .on('mousemove', function(event) {
+        const rect = document.querySelector('.plot-container').getBoundingClientRect();
+        tooltip.style.left = (event.clientX - rect.left + 14) + 'px';
+        tooltip.style.top = (event.clientY - rect.top - 28) + 'px';
+      })
+      .on('mouseleave', () => { tooltip.style.opacity = 0; })
+      .on('contextmenu', function(event, d) {
+        event.preventDefault();
+        saveHistory();
+        points = points.filter(p => p !== d);
+        render();
+      });
+
+    updateStats();
+  }
+
+  function updateStats() {
+    const ols = computeOLS();
+    document.getElementById('stat-n').textContent = points.length;
+
+    if (!ols) {
+      ['stat-b0', 'stat-b1', 'stat-r2', 'stat-sse-ols'].forEach(
+        id => document.getElementById(id).textContent = '—'
+      );
+      document.getElementById('eq-ols').textContent = 'ŷ = — (need ≥ 2 points)';
+      if (mode === 'manual') {
+        document.getElementById('stat-sse-ols2').textContent = '—';
+        document.getElementById('stat-sse-manual').textContent = '—';
+        document.getElementById('bar-ols-val').textContent = '—';
+        document.getElementById('bar-manual-val').textContent = '—';
+        document.getElementById('bar-ols').style.width = '0%';
+        document.getElementById('bar-manual').style.width = '0%';
+      }
+      return;
+    }
+
+    document.getElementById('stat-b0').textContent = ols.b0.toFixed(3);
+    document.getElementById('stat-b1').textContent = ols.b1.toFixed(3);
+    document.getElementById('stat-r2').textContent = ols.r2.toFixed(4);
+    document.getElementById('stat-sse-ols').textContent = ols.sse.toFixed(3);
+
+    const b1Sign = ols.b1 >= 0 ? '+' : '−';
+    document.getElementById('eq-ols').textContent =
+      `ŷ = ${ols.b0.toFixed(2)} ${b1Sign} ${Math.abs(ols.b1).toFixed(2)}x`;
+
+    if (mode === 'manual') {
+      const mSSE = computeSSE(manualB0, manualB1);
+      document.getElementById('stat-sse-manual').textContent = mSSE.toFixed(3);
+      document.getElementById('stat-sse-ols2').textContent = ols.sse.toFixed(3);
+
+      const mSign = manualB1 >= 0 ? '+' : '−';
+      document.getElementById('eq-manual').textContent =
+        `ŷ = ${manualB0.toFixed(2)} ${mSign} ${Math.abs(manualB1).toFixed(2)}x`;
+
+      const maxSSE = Math.max(ols.sse, mSSE, 0.01);
+      document.getElementById('bar-ols').style.width = (ols.sse / maxSSE * 100) + '%';
+      document.getElementById('bar-manual').style.width = (mSSE / maxSSE * 100) + '%';
+      document.getElementById('bar-ols-val').textContent = ols.sse.toFixed(2);
+      document.getElementById('bar-manual-val').textContent = mSSE.toFixed(2);
+    }
+  }
+
+  function saveHistory() {
+    history.push(points.map(p => ({ ...p })));
+    if (history.length > 50) history.shift();
+  }
+
+  // --- Click to add ---
+  svg.on('click', function(event) {
+    if (event.target.tagName === 'circle') return;
+    const [mx, my] = d3.pointer(event, clipped.node());
+    if (mx < 0 || mx > plotW || my < 0 || my > plotH) return;
+    saveHistory();
+    points.push({ x: xScale.invert(mx), y: yScale.invert(my), id: nextId++ });
+    render();
+  });
+
+  // --- Mode ---
+  document.querySelectorAll('.mode-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      mode = tab.dataset.mode;
+      document.getElementById('card-manual').style.display = mode === 'manual' ? '' : 'none';
+      render();
+    });
+  });
+
+  // --- Sliders ---
+  document.getElementById('slider-b0').addEventListener('input', function() {
+    manualB0 = parseFloat(this.value);
+    document.getElementById('slider-b0-val').textContent = manualB0.toFixed(2);
+    render();
+  });
+  document.getElementById('slider-b1').addEventListener('input', function() {
+    manualB1 = parseFloat(this.value);
+    document.getElementById('slider-b1-val').textContent = manualB1.toFixed(2);
+    render();
+  });
+
+  // --- Toggles ---
+  document.getElementById('chk-residuals').addEventListener('change', function() { showResiduals = this.checked; render(); });
+  document.getElementById('chk-squares').addEventListener('change', function() { showSquares = this.checked; render(); });
+  document.getElementById('chk-means').addEventListener('change', function() { showMeans = this.checked; render(); });
+
+  // --- Buttons ---
+  document.getElementById('btn-clear').addEventListener('click', () => { saveHistory(); points = []; render(); });
+  document.getElementById('btn-undo').addEventListener('click', () => { if (history.length) { points = history.pop(); render(); } });
+
+  // --- Presets ---
+  const presets = {
+    positive: [{x:1,y:2.1},{x:2,y:3.8},{x:3,y:4.2},{x:4,y:5.5},{x:5,y:5.9},{x:6,y:7.1},{x:7,y:7.8},{x:8,y:9.2},{x:9,y:9.6},{x:10,y:11.0}],
+    negative: [{x:1,y:10.2},{x:2,y:9.1},{x:3,y:7.8},{x:4,y:7.5},{x:5,y:6.0},{x:6,y:5.3},{x:7,y:4.1},{x:8,y:3.5},{x:9,y:2.2},{x:10,y:1.0}],
+    none: [{x:1,y:5.2},{x:2,y:3.8},{x:3,y:7.1},{x:4,y:4.5},{x:5,y:6.9},{x:6,y:3.2},{x:7,y:5.8},{x:8,y:7.2},{x:9,y:4.1},{x:10,y:5.5}],
+    outlier: [{x:1,y:2.0},{x:2,y:3.2},{x:3,y:4.1},{x:4,y:5.3},{x:5,y:5.8},{x:6,y:7.0},{x:7,y:7.5},{x:8,y:8.8},{x:9,y:10.1},{x:5,y:20.0}],
+    curve: [{x:1,y:1.0},{x:2,y:1.8},{x:3,y:3.5},{x:4,y:5.8},{x:5,y:9.0},{x:6,y:12.5},{x:7,y:16.2},{x:8,y:21.0},{x:9,y:26.5},{x:10,y:32.0}],
+    anscombe: [{x:10,y:8.04},{x:8,y:6.95},{x:13,y:7.58},{x:9,y:8.81},{x:11,y:8.33},{x:14,y:9.96},{x:6,y:7.24},{x:4,y:4.26},{x:12,y:10.84},{x:7,y:4.82},{x:5,y:5.68}]
+  };
+
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saveHistory();
+      points = presets[btn.dataset.preset].map(p => ({ ...p, id: nextId++ }));
+      render();
+    });
+  });
+
+  // --- Keyboard ---
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (history.length) { points = history.pop(); render(); }
+    }
+  });
+
+  // Init
+  drawAxes();
+  render();
+})();
+</script>
+</body>
+</html>

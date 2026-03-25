@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SLR Explorer — MA206X Interactive Regression</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -204,7 +208,7 @@
   .stat-row {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
     padding: 3px 0;
     border-bottom: 1px solid rgba(42, 48, 64, 0.4);
   }
@@ -405,6 +409,93 @@
     .sidebar { flex-direction: row; flex-wrap: wrap; }
     .card { flex: 1; min-width: 250px; }
   }
+
+  /* ===== PROOF / DERIVATION SECTION ===== */
+  .derivation-section {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 3rem auto 2rem;
+    padding: 0 1.5rem;
+  }
+
+  .derivation-section h2 {
+    font-family: var(--serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.25rem;
+  }
+
+  .derivation-section h2 span { color: var(--accent); }
+
+  .derivation-section .subtitle {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    margin-bottom: 2rem;
+  }
+
+  .proof-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .proof-card h3 {
+    font-family: var(--serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+
+  .proof-card p {
+    font-family: var(--serif);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    color: var(--text);
+    margin-bottom: 0.85rem;
+  }
+
+  .proof-card p:last-child {
+    margin-bottom: 0;
+  }
+
+  .proof-card .step-label {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    background: var(--accent-glow);
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+
+  .proof-card .katex-display {
+    margin: 1rem 0;
+  }
+
+  .proof-card .qed {
+    text-align: right;
+    color: var(--accent);
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0.5rem 0 1.5rem;
+  }
+
+  /* KaTeX color override for dark theme */
+  .katex { color: var(--text); }
 </style>
 </head>
 <body>
@@ -440,11 +531,11 @@
           <div class="equation ols" id="eq-ols">ŷ = — (need ≥ 2 points)</div>
         </div>
         <div class="stat-row">
-          <span class="stat-label">β̂₀ (intercept)</span>
+          <span class="stat-label" id="label-b0"></span>
           <span class="stat-value ols" id="stat-b0">—</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">β̂₁ (slope)</span>
+          <span class="stat-label" id="label-b1"></span>
           <span class="stat-value ols" id="stat-b1">—</span>
         </div>
         <div class="stat-row">
@@ -528,9 +619,95 @@
   </div>
 </div>
 
+<!-- ===== OLS DERIVATION ===== -->
+<div class="derivation-section">
+  <h2>Deriving the <span>OLS Estimators</span></h2>
+  <p class="subtitle">How does Ordinary Least Squares solve for the slope and intercept?</p>
+
+  <!-- Setup -->
+  <div class="proof-card">
+    <h3>1. The Setup</h3>
+    <p>We model the relationship between a response $y$ and predictor $x$ as a linear function:</p>
+    $$\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_i$$
+    <p>For each observation $i$, the <strong>residual</strong> is the vertical distance between the observed value and the predicted value:</p>
+    $$e_i = y_i - \hat{y}_i = y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i$$
+    <p>The <strong>sum of squared errors</strong> (SSE) measures total prediction error across all $n$ observations:</p>
+    $$\text{SSE} = \sum_{i=1}^{n} e_i^2 = \sum_{i=1}^{n} \bigl(y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i\bigr)^2$$
+    <p>Our goal: find the values of $\hat{\beta}_0$ and $\hat{\beta}_1$ that make SSE as small as possible.</p>
+  </div>
+
+  <!-- Partial wrt beta_0 -->
+  <div class="proof-card">
+    <h3>2. Solving for $\hat{\beta}_0$</h3>
+    <p><span class="step-label">Step 2a</span></p>
+    <p>Take the partial derivative of SSE with respect to $\hat{\beta}_0$ and set it equal to zero:</p>
+    $$\frac{\partial}{\partial \hat{\beta}_0} \sum_{i=1}^{n} \bigl(y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i\bigr)^2 = 0$$
+    <p>Applying the chain rule:</p>
+    $$-2 \sum_{i=1}^{n} \bigl(y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i\bigr) = 0$$
+    <p><span class="step-label">Step 2b</span></p>
+    <p>Divide both sides by $-2$ and distribute the sum:</p>
+    $$\sum_{i=1}^{n} y_i - n\hat{\beta}_0 - \hat{\beta}_1 \sum_{i=1}^{n} x_i = 0$$
+    <p><span class="step-label">Step 2c</span></p>
+    <p>Divide everything by $n$ and recognize that $\frac{1}{n}\sum y_i = \bar{y}$ and $\frac{1}{n}\sum x_i = \bar{x}$:</p>
+    $$\bar{y} - \hat{\beta}_0 - \hat{\beta}_1 \bar{x} = 0$$
+    <p>Solving for $\hat{\beta}_0$:</p>
+    $$\boxed{\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}}$$
+    <p>This tells us the OLS line always passes through the point $(\bar{x}, \bar{y})$ — which you can verify in the interactive plot above by toggling "Show x̄, ȳ lines."</p>
+  </div>
+
+  <!-- Partial wrt beta_1 -->
+  <div class="proof-card">
+    <h3>3. Solving for $\hat{\beta}_1$</h3>
+    <p><span class="step-label">Step 3a</span></p>
+    <p>Take the partial derivative of SSE with respect to $\hat{\beta}_1$ and set it equal to zero:</p>
+    $$\frac{\partial}{\partial \hat{\beta}_1} \sum_{i=1}^{n} \bigl(y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i\bigr)^2 = 0$$
+    <p>Applying the chain rule (note the extra $-x_i$ factor):</p>
+    $$-2 \sum_{i=1}^{n} x_i\bigl(y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i\bigr) = 0$$
+    <p><span class="step-label">Step 3b</span></p>
+    <p>Divide by $-2$ and expand:</p>
+    $$\sum_{i=1}^{n} x_i y_i - \hat{\beta}_0 \sum_{i=1}^{n} x_i - \hat{\beta}_1 \sum_{i=1}^{n} x_i^2 = 0$$
+    <p><span class="step-label">Step 3c</span></p>
+    <p>Substitute $\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}$ from Step 2:</p>
+    $$\sum_{i=1}^{n} x_i y_i - (\bar{y} - \hat{\beta}_1 \bar{x})\sum_{i=1}^{n} x_i - \hat{\beta}_1 \sum_{i=1}^{n} x_i^2 = 0$$
+    <p>Since $\sum x_i = n\bar{x}$, expand and collect terms:</p>
+    $$\sum_{i=1}^{n} x_i y_i - n\bar{x}\bar{y} + \hat{\beta}_1 n\bar{x}^2 - \hat{\beta}_1 \sum_{i=1}^{n} x_i^2 = 0$$
+    <p><span class="step-label">Step 3d</span></p>
+    <p>Factor out $\hat{\beta}_1$ and solve:</p>
+    $$\hat{\beta}_1 \left(\sum_{i=1}^{n} x_i^2 - n\bar{x}^2\right) = \sum_{i=1}^{n} x_i y_i - n\bar{x}\bar{y}$$
+    <p>Recognizing that $\sum x_i^2 - n\bar{x}^2 = \sum(x_i - \bar{x})^2 = SS_{xx}$ and $\sum x_i y_i - n\bar{x}\bar{y} = \sum(x_i - \bar{x})(y_i - \bar{y}) = SS_{xy}$:</p>
+    $$\boxed{\hat{\beta}_1 = \frac{SS_{xy}}{SS_{xx}} = \frac{\displaystyle\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\displaystyle\sum_{i=1}^{n}(x_i - \bar{x})^2}}$$
+  </div>
+
+  <!-- Summary -->
+  <div class="proof-card">
+    <h3>4. Summary</h3>
+    <p>The OLS estimators for simple linear regression $\hat{y} = \hat{\beta}_0 + \hat{\beta}_1 x$ are:</p>
+    $$\hat{\beta}_1 = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sum_{i=1}^{n}(x_i - \bar{x})^2} = \frac{SS_{xy}}{SS_{xx}}$$
+    $$\hat{\beta}_0 = \bar{y} - \hat{\beta}_1\bar{x}$$
+    <p>These are the unique values that minimize $\text{SSE} = \sum(y_i - \hat{\beta}_0 - \hat{\beta}_1 x_i)^2$. No other choice of slope and intercept can produce a smaller SSE — which is exactly what you can verify by playing with the "Fit Your Own" mode above.</p>
+    <hr class="divider">
+    <p>The second-order conditions (the Hessian matrix of SSE is positive definite whenever $SS_{xx} > 0$, i.e., not all $x_i$ are identical) confirm this is a true minimum, not a maximum or saddle point.</p>
+    <div class="qed">∎</div>
+  </div>
+</div>
+
 <script>
 (function() {
   'use strict';
+
+  // Render beta-hat labels with KaTeX once it loads
+  function renderLabels() {
+    if (typeof katex !== 'undefined') {
+      katex.render('\\hat{\\beta}_0 \\text{ (intercept)}', document.getElementById('label-b0'), { throwOnError: false });
+      katex.render('\\hat{\\beta}_1 \\text{ (slope)}', document.getElementById('label-b1'), { throwOnError: false });
+    } else {
+      // Fallback if KaTeX hasn't loaded yet
+      document.getElementById('label-b0').textContent = 'β₀-hat (intercept)';
+      document.getElementById('label-b1').textContent = 'β₁-hat (slope)';
+      setTimeout(renderLabels, 200);
+    }
+  }
+  renderLabels();
 
   const W = 720, H = 460;
   const margin = { top: 20, right: 25, bottom: 48, left: 52 };
@@ -549,7 +726,7 @@
   let showResiduals = true, showSquares = false, showMeans = false;
   let nextId = 0;
   let isPanning = false;
-  let didPan = false; // track if a pan actually happened (to suppress click-to-add)
+  let didPan = false;
 
   const svg = d3.select('#plot')
     .attr('viewBox', `0 0 ${W} ${H}`)
@@ -592,24 +769,22 @@
 
   const tooltip = document.getElementById('tooltip');
 
-  // ===== ZOOM (scroll wheel, centered on cursor) =====
+  // ===== ZOOM =====
   svg.on('wheel', function(event) {
     event.preventDefault();
     const factor = event.deltaY > 0 ? 1.12 : 1 / 1.12;
     const [mx, my] = d3.pointer(event, g.node());
     const cx = xScale.invert(Math.max(0, Math.min(plotW, mx)));
     const cy = yScale.invert(Math.max(0, Math.min(plotH, my)));
-    const xR = xDomain[1] - xDomain[0];
-    const yR = yDomain[1] - yDomain[0];
-    const fx = (cx - xDomain[0]) / xR;
-    const fy = (cy - yDomain[0]) / yR;
+    const xR = xDomain[1] - xDomain[0], yR = yDomain[1] - yDomain[0];
+    const fx = (cx - xDomain[0]) / xR, fy = (cy - yDomain[0]) / yR;
     const nxR = xR * factor, nyR = yR * factor;
     xDomain = [cx - fx * nxR, cx + (1 - fx) * nxR];
     yDomain = [cy - fy * nyR, cy + (1 - fy) * nyR];
     render();
   }, { passive: false });
 
-  // ===== PAN (shift+drag) =====
+  // ===== PAN =====
   let panStart = null, panDomainSnap = null;
 
   svg.on('mousedown', function(event) {
@@ -626,13 +801,10 @@
     if (!isPanning) return;
     didPan = true;
     const cur = d3.pointer(event, g.node());
-    // compute shift in data units using snapped domain
-    const dxPx = cur[0] - panStart[0];
-    const dyPx = cur[1] - panStart[1];
     const xR = panDomainSnap.x[1] - panDomainSnap.x[0];
     const yR = panDomainSnap.y[1] - panDomainSnap.y[0];
-    const dx = -(dxPx / plotW) * xR;
-    const dy = (dyPx / plotH) * yR;
+    const dx = -((cur[0] - panStart[0]) / plotW) * xR;
+    const dy = ((cur[1] - panStart[1]) / plotH) * yR;
     xDomain = [panDomainSnap.x[0] + dx, panDomainSnap.x[1] + dx];
     yDomain = [panDomainSnap.y[0] + dy, panDomainSnap.y[1] + dy];
     render();
@@ -644,7 +816,6 @@
       svg.style('cursor', 'crosshair');
       panStart = null;
       panDomainSnap = null;
-      // briefly set didPan so the click handler ignores the mouseup-click
       setTimeout(() => { didPan = false; }, 50);
     }
   });
@@ -652,8 +823,7 @@
   // ===== VIEW CONTROLS =====
   function fitToData() {
     if (points.length === 0) {
-      xDomain = [...DEFAULT_DOMAIN.x];
-      yDomain = [...DEFAULT_DOMAIN.y];
+      xDomain = [...DEFAULT_DOMAIN.x]; yDomain = [...DEFAULT_DOMAIN.y];
     } else if (points.length === 1) {
       xDomain = [points[0].x - 5, points[0].x + 5];
       yDomain = [points[0].y - 5, points[0].y + 5];
@@ -670,8 +840,7 @@
   }
 
   function resetView() {
-    xDomain = [...DEFAULT_DOMAIN.x];
-    yDomain = [...DEFAULT_DOMAIN.y];
+    xDomain = [...DEFAULT_DOMAIN.x]; yDomain = [...DEFAULT_DOMAIN.y];
     render();
   }
 
@@ -683,8 +852,7 @@
   }
 
   function drawAxes() {
-    xScale.domain(xDomain);
-    yScale.domain(yDomain);
+    xScale.domain(xDomain); yScale.domain(yDomain);
     xAxisG.transition().duration(100).call(d3.axisBottom(xScale).ticks(8));
     yAxisG.transition().duration(100).call(d3.axisLeft(yScale).ticks(6));
     gridX.transition().duration(100).call(d3.axisBottom(xScale).ticks(8).tickSize(-plotH).tickFormat(''));
@@ -703,8 +871,7 @@
       ssyy += (ys[i] - yBar) ** 2;
     }
     if (ssxx === 0) return null;
-    const b1 = ssxy / ssxx;
-    const b0 = yBar - b1 * xBar;
+    const b1 = ssxy / ssxx, b0 = yBar - b1 * xBar;
     let sse = 0;
     for (let i = 0; i < n; i++) sse += (ys[i] - (b0 + b1 * xs[i])) ** 2;
     const r2 = ssyy === 0 ? 1 : 1 - sse / ssyy;
@@ -720,7 +887,6 @@
     updateSliderRange();
     const ols = computeOLS();
 
-    // OLS line
     olsLineLayer.selectAll('*').remove();
     if (ols) {
       const x0 = xDomain[0], x1 = xDomain[1];
@@ -732,7 +898,6 @@
         .attr('opacity', mode === 'manual' ? 0.45 : 1);
     }
 
-    // Manual line
     manualLineLayer.selectAll('*').remove();
     if (mode === 'manual' && points.length >= 1) {
       const x0 = xDomain[0], x1 = xDomain[1];
@@ -742,7 +907,6 @@
         .attr('stroke', 'var(--manual-line)').attr('stroke-width', 2.5);
     }
 
-    // Residuals
     residualsLayer.selectAll('*').remove();
     if (showResiduals && ols) {
       points.forEach(p => {
@@ -766,7 +930,6 @@
       }
     }
 
-    // SSE squares
     squaresLayer.selectAll('*').remove();
     if (showSquares && ols) {
       const drawSq = (b0, b1, cls) => {
@@ -774,10 +937,8 @@
           const yHat = b0 + b1 * p.x;
           const res = Math.abs(p.y - yHat);
           const side = Math.abs(yScale(0) - yScale(res));
-          const px = xScale(p.x);
-          const topY = Math.min(yScale(p.y), yScale(yHat));
           squaresLayer.append('rect')
-            .attr('x', px).attr('y', topY)
+            .attr('x', xScale(p.x)).attr('y', Math.min(yScale(p.y), yScale(yHat)))
             .attr('width', side).attr('height', side)
             .attr('class', `sse-square ${cls}`);
         });
@@ -786,7 +947,6 @@
       if (mode === 'manual') drawSq(manualB0, manualB1, 'manual');
     }
 
-    // Mean lines
     meanLinesLayer.selectAll('*').remove();
     if (showMeans && ols) {
       meanLinesLayer.append('line')
@@ -809,17 +969,14 @@
         .text(`(${ols.xBar.toFixed(1)}, ${ols.yBar.toFixed(1)})`);
     }
 
-    // Points
     const circles = pointsLayer.selectAll('circle').data(points, d => d.id);
     circles.exit().transition().duration(150).attr('r', 0).remove();
-
     const enter = circles.enter().append('circle')
       .attr('cx', d => xScale(d.x)).attr('cy', d => yScale(d.y))
       .attr('r', 0)
       .attr('fill', 'var(--point-fill)').attr('stroke', 'var(--point-stroke)')
       .attr('stroke-width', 2).attr('cursor', 'grab');
     enter.transition().duration(180).attr('r', 6);
-
     const merged = enter.merge(circles)
       .attr('cx', d => xScale(d.x)).attr('cy', d => yScale(d.y));
 
@@ -843,10 +1000,7 @@
       .on('mouseenter', function(event, d) {
         const ols2 = computeOLS();
         let extra = '';
-        if (ols2) {
-          const yHat = ols2.b0 + ols2.b1 * d.x;
-          extra = ` · ε = ${(d.y - yHat).toFixed(2)}`;
-        }
+        if (ols2) extra = ` · ε = ${(d.y - (ols2.b0 + ols2.b1 * d.x)).toFixed(2)}`;
         tooltip.textContent = `(${d.x.toFixed(2)}, ${d.y.toFixed(2)})${extra}`;
         tooltip.style.opacity = 1;
         const rect = document.querySelector('.plot-container').getBoundingClientRect();
@@ -872,7 +1026,6 @@
   function updateStats() {
     const ols = computeOLS();
     document.getElementById('stat-n').textContent = points.length;
-
     if (!ols) {
       ['stat-b0', 'stat-b1', 'stat-r2', 'stat-sse-ols'].forEach(
         id => document.getElementById(id).textContent = '—'
@@ -888,25 +1041,20 @@
       }
       return;
     }
-
     document.getElementById('stat-b0').textContent = ols.b0.toFixed(3);
     document.getElementById('stat-b1').textContent = ols.b1.toFixed(3);
     document.getElementById('stat-r2').textContent = ols.r2.toFixed(4);
     document.getElementById('stat-sse-ols').textContent = ols.sse.toFixed(3);
-
     const b1Sign = ols.b1 >= 0 ? '+' : '−';
     document.getElementById('eq-ols').textContent =
       `ŷ = ${ols.b0.toFixed(2)} ${b1Sign} ${Math.abs(ols.b1).toFixed(2)}x`;
-
     if (mode === 'manual') {
       const mSSE = computeSSE(manualB0, manualB1);
       document.getElementById('stat-sse-manual').textContent = mSSE.toFixed(3);
       document.getElementById('stat-sse-ols2').textContent = ols.sse.toFixed(3);
-
       const mSign = manualB1 >= 0 ? '+' : '−';
       document.getElementById('eq-manual').textContent =
         `ŷ = ${manualB0.toFixed(2)} ${mSign} ${Math.abs(manualB1).toFixed(2)}x`;
-
       const maxSSE = Math.max(ols.sse, mSSE, 0.01);
       document.getElementById('bar-ols').style.width = (ols.sse / maxSSE * 100) + '%';
       document.getElementById('bar-manual').style.width = (mSSE / maxSSE * 100) + '%';
@@ -920,7 +1068,6 @@
     if (history.length > 50) history.shift();
   }
 
-  // --- Click to add (suppressed during pan) ---
   svg.on('click', function(event) {
     if (event.shiftKey || didPan) return;
     if (event.target.tagName === 'circle') return;
@@ -928,11 +1075,9 @@
     if (mx < 0 || mx > plotW || my < 0 || my > plotH) return;
     saveHistory();
     points.push({ x: xScale.invert(mx), y: yScale.invert(my), id: nextId++ });
-    // Do NOT auto-fit — keep current view so user stays oriented
     render();
   });
 
-  // --- Mode ---
   document.querySelectorAll('.mode-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
@@ -943,7 +1088,6 @@
     });
   });
 
-  // --- Sliders ---
   document.getElementById('slider-b0').addEventListener('input', function() {
     manualB0 = parseFloat(this.value);
     document.getElementById('slider-b0-val').textContent = manualB0.toFixed(2);
@@ -955,18 +1099,15 @@
     render();
   });
 
-  // --- Toggles ---
   document.getElementById('chk-residuals').addEventListener('change', function() { showResiduals = this.checked; render(); });
   document.getElementById('chk-squares').addEventListener('change', function() { showSquares = this.checked; render(); });
   document.getElementById('chk-means').addEventListener('change', function() { showMeans = this.checked; render(); });
 
-  // --- Buttons ---
   document.getElementById('btn-clear').addEventListener('click', () => { saveHistory(); points = []; render(); });
   document.getElementById('btn-undo').addEventListener('click', () => { if (history.length) { points = history.pop(); render(); } });
   document.getElementById('btn-zoom-fit').addEventListener('click', fitToData);
   document.getElementById('btn-zoom-reset').addEventListener('click', resetView);
 
-  // --- Presets ---
   const presets = {
     positive: [{x:1,y:2.1},{x:2,y:3.8},{x:3,y:4.2},{x:4,y:5.5},{x:5,y:5.9},{x:6,y:7.1},{x:7,y:7.8},{x:8,y:9.2},{x:9,y:9.6},{x:10,y:11.0}],
     negative: [{x:1,y:10.2},{x:2,y:9.1},{x:3,y:7.8},{x:4,y:7.5},{x:5,y:6.0},{x:6,y:5.3},{x:7,y:4.1},{x:8,y:3.5},{x:9,y:2.2},{x:10,y:1.0}],
@@ -984,7 +1125,6 @@
     });
   });
 
-  // --- Keyboard ---
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
       e.preventDefault();
@@ -992,7 +1132,6 @@
     }
   });
 
-  // Init
   render();
 })();
 </script>
